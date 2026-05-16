@@ -56,6 +56,35 @@ app.get('/', (req,res) => res.json({status:'ok',game:'КАЧОК 2026',players:c
 app.get('/api/leaderboard', async (req,res) => res.json(await getLeaderboard()));
 app.get('/api/stats', (req,res) => res.json({online:clients.size,uptime:Math.floor(process.uptime())}));
 
+// Get single player
+app.get('/api/player/:userId', async (req,res) => {
+  const r = await sb('players','GET',null,`?id=eq.${encodeURIComponent(req.params.userId)}&limit=1`);
+  if(r && r[0]) res.json(r[0]);
+  else res.status(404).json({error:'not found'});
+});
+
+// Save/update player
+app.post('/api/player', async (req,res) => {
+  const d = req.body;
+  if(!d.userId) return res.status(400).json({error:'userId required'});
+  const data = {
+    id: d.userId, name: d.name||'Гравець',
+    lv: d.lv||0, mu: d.mu||0, en: d.en||100, hp: d.hp||100,
+    coins: d.coins||0, gems: d.gems||10,
+    rt: d.rt||0, week_rt: d.weekRt||0,
+    wins: d.wins||0, losses: d.losses||0,
+    skin: d.skin||'default',
+    train_count: d.trainCount||0,
+    daily_streak: d.dailyStreak||0,
+    last_daily: d.lastDaily||0,
+    ref_code: d.refCode||null,
+    ref_count: d.refCount||0,
+    last_fight: d.lastFight||0,
+  };
+  const r = await sb('players','POST', data,'?on_conflict=id');
+  res.json({ok:true});
+});
+
 wss.on('connection', async (ws, req) => {
   const url    = new URL(req.url,'http://localhost');
   const userId = url.searchParams.get('userId')||'guest_'+Date.now();
